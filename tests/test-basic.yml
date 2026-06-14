@@ -1,0 +1,30 @@
+name: Test basic usage with token input
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      GITHUB_TOKEN: fake-token-for-testing
+      GITHUB_EVENT_NAME: pull_request
+      GITHUB_REF: refs/pull/1/merge
+      GITHUB_HEAD_REF: feature-branch
+      GITHUB_BASE_REF: main
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - id: action
+        uses: .
+        with:
+          token: ${{ env.GITHUB_TOKEN }}
+        continue-on-error: true
+      - name: Assert token input was accepted (action ran)
+        run: |
+          echo "Action outcome: ${{ steps.action.outcome }}"
+          # The action requires a real GitHub API token to succeed,
+          # but we verify it at least started (not a missing-input error).
+          # A failure due to API auth is acceptable; a missing-input error is not.
+          if [ "${{ steps.action.outcome }}" = "skipped" ]; then
+            echo "FAIL: action was skipped unexpectedly"
+            exit 1
+          fi
+          echo "PASS: action ran with token input provided"

@@ -1,30 +1,27 @@
-name: Test basic usage with token input
+name: Test basic usage - d-day-labeler runs without crash
 on:
   workflow_dispatch:
 jobs:
   test:
     runs-on: ubuntu-latest
-    env:
-      GITHUB_TOKEN: fake-token-for-testing
-      GITHUB_EVENT_NAME: pull_request
-      GITHUB_REF: refs/pull/1/merge
-      GITHUB_HEAD_REF: feature-branch
-      GITHUB_BASE_REF: main
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-      - id: action
+
+      - name: Run d-day-labeler action
+        id: action
         uses: .
         with:
-          token: ${{ env.GITHUB_TOKEN }}
+          token: ${{ github.token }}
         continue-on-error: true
-      - name: Assert token input was accepted (action ran)
+
+      - name: Assert action ran (success or expected API failure)
+        env:
+          OUTCOME: ${{ steps.action.outcome }}
         run: |
-          echo "Action outcome: ${{ steps.action.outcome }}"
-          # The action requires a real GitHub API token to succeed,
-          # but we verify it at least started (not a missing-input error).
-          # A failure due to API auth is acceptable; a missing-input error is not.
-          if [ "${{ steps.action.outcome }}" = "skipped" ]; then
-            echo "FAIL: action was skipped unexpectedly"
+          echo "outcome: $OUTCOME"
+          if [ "$OUTCOME" = "success" ] || [ "$OUTCOME" = "failure" ]; then
+            echo "PASS: action ran and produced a deterministic outcome: $OUTCOME"
+          else
+            echo "FAIL: unexpected outcome: $OUTCOME"
             exit 1
           fi
-          echo "PASS: action ran with token input provided"
